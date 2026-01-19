@@ -20,6 +20,12 @@ export const auth = betterAuth({
   baseURL: env.BETTER_AUTH_URL,
 
   /**
+   * Trusted origins for OAuth callbacks.
+   * This prevents state_mismatch errors during OAuth flow.
+   */
+  trustedOrigins: [env.BETTER_AUTH_URL],
+
+  /**
    * Database adapter using Drizzle ORM with PostgreSQL.
    * Tables are created in the DATABASE_SCHEMA schema.
    */
