@@ -2,6 +2,15 @@
 
 This document provides a comprehensive checklist for deploying the AI Agent app to Vercel.
 
+## ⚠️ CRITICAL: 403 Forbidden Error Fix
+
+If you're getting `403 Forbidden` error on production, see **[Troubleshooting Section](#authentication-fails)** below.
+
+**Quick Fix:**
+1. Update `BETTER_AUTH_URL` in Vercel to `https://tx-sentinel.vercel.app`
+2. Add production URLs to Google/GitHub OAuth consoles
+3. Redeploy
+
 ## ✅ Pre-Deployment Verification
 
 ### 1. Build Configuration
@@ -34,8 +43,13 @@ DATABASE_SCHEMA=ai_agent
 #### Authentication (Better Auth)
 ```bash
 AUTH_SECRET=your-secret-key-at-least-32-characters-long
-BETTER_AUTH_URL=https://your-app-name.vercel.app
+BETTER_AUTH_URL=https://tx-sentinel.vercel.app
 ```
+
+**⚠️ IMPORTANT:** `BETTER_AUTH_URL` must be:
+- Your actual Vercel domain: `https://tx-sentinel.vercel.app`
+- NO trailing slash
+- HTTPS (not HTTP)
 
 #### OAuth Providers
 ```bash
@@ -60,13 +74,25 @@ SESSION_PASSWORD=your-secure-password-here
 
 ### 3. OAuth Callback URLs
 
-After deploying to Vercel, update OAuth redirect URIs:
+**⚠️ CRITICAL:** After deploying to Vercel, update OAuth redirect URIs in BOTH providers:
 
-#### Google OAuth Console
-- Authorized redirect URIs: `https://your-app-name.vercel.app/api/auth/callback/google`
+#### Google OAuth Console (https://console.developers.google.com/)
 
-#### GitHub OAuth Settings
-- Authorization callback URL: `https://your-app-name.vercel.app/api/auth/callback/github`
+**Authorized JavaScript origins:**
+- `http://localhost:3000` (for local dev)
+- `https://tx-sentinel.vercel.app` (for production)
+
+**Authorized redirect URIs:**
+- `http://localhost:3000/api/auth/callback/google` (for local dev)
+- `https://tx-sentinel.vercel.app/api/auth/callback/google` (for production)
+
+#### GitHub OAuth Settings (https://github.com/settings/developers)
+
+**Authorization callback URL:**
+- For local dev: `http://localhost:3000/api/auth/callback/github`
+- For production: `https://tx-sentinel.vercel.app/api/auth/callback/github`
+
+**Note:** GitHub allows only one callback URL per OAuth app. Consider creating separate OAuth apps for development and production.
 
 ### 4. Database Setup
 
@@ -116,7 +142,7 @@ In the Vercel project settings, add ALL environment variables listed in section 
 - `DATABASE_URL`
 - `DATABASE_SCHEMA`
 - `AUTH_SECRET`
-- `BETTER_AUTH_URL`
+- `BETTER_AUTH_URL=https://tx-sentinel.vercel.app` ⚠️ **Use production URL**
 - `OPENAI_API_KEY`
 - `GOOGLE_CLIENT_ID`
 - `GOOGLE_CLIENT_SECRET`
@@ -133,17 +159,17 @@ Click "Deploy" and wait for the build to complete.
 
 ### Step 5: Post-Deployment Configuration
 
-1. **Update BETTER_AUTH_URL**
-   - Copy your Vercel deployment URL (e.g., `https://your-app.vercel.app`)
-   - Update `BETTER_AUTH_URL` environment variable in Vercel dashboard
-   - Redeploy the application
+1. **Verify BETTER_AUTH_URL**
+   - Your Vercel deployment URL is: `https://tx-sentinel.vercel.app`
+   - Confirm `BETTER_AUTH_URL` is set to `https://tx-sentinel.vercel.app` (no trailing slash)
+   - If you changed it, redeploy the application
 
 2. **Update OAuth Redirect URIs**
-   - Google: Add `https://your-app.vercel.app/api/auth/callback/google`
-   - GitHub: Add `https://your-app.vercel.app/api/auth/callback/github`
+   - Google: Add `https://tx-sentinel.vercel.app/api/auth/callback/google`
+   - GitHub: Add `https://tx-sentinel.vercel.app/api/auth/callback/github`
 
 3. **Test Authentication Flow**
-   - Visit your deployed app
+   - Visit https://tx-sentinel.vercel.app
    - Test Google OAuth sign-in
    - Test GitHub OAuth sign-in
    - Verify session persistence
@@ -158,7 +184,7 @@ Click "Deploy" and wait for the build to complete.
 After deployment, verify these functionalities:
 
 - [ ] Home page loads correctly
-- [ ] Sign in with Google works
+- [ ] Sign in with Google works (no 403 errors)
 - [ ] Sign in with GitHub works
 - [ ] User session persists across page refreshes
 - [ ] Session password dialog appears (if enabled)
@@ -181,17 +207,32 @@ After deployment, verify these functionalities:
 
 ### Authentication Fails
 
-**Issue:** OAuth redirect errors or session not persisting
+**Issue:** `403 Forbidden` error or OAuth redirect errors
 
 **Common Causes:**
 1. `BETTER_AUTH_URL` not set or incorrect
-2. OAuth callback URLs not updated in provider consoles
-3. `AUTH_SECRET` not set or too short (< 32 characters)
+2. `BETTER_AUTH_URL` points to localhost instead of production URL
+3. OAuth callback URLs not updated in provider consoles
+4. `AUTH_SECRET` not set or too short (< 32 characters)
 
 **Solution:**
-1. Verify `BETTER_AUTH_URL` matches your Vercel deployment URL
-2. Update OAuth callback URLs in Google and GitHub consoles
-3. Ensure `AUTH_SECRET` is at least 32 characters
+
+1. **Update BETTER_AUTH_URL in Vercel:**
+   ```bash
+   BETTER_AUTH_URL=https://tx-sentinel.vercel.app
+   ```
+   ⚠️ Must match your actual Vercel domain, NO trailing slash, HTTPS only
+
+2. **Redeploy after changing environment variables:**
+   - Vercel Dashboard → Deployments → "..." menu → Redeploy
+
+3. **Update OAuth callback URLs:**
+   - Google Console: Add `https://tx-sentinel.vercel.app/api/auth/callback/google`
+   - GitHub Settings: Add `https://tx-sentinel.vercel.app/api/auth/callback/github`
+
+4. **Verify AUTH_SECRET is at least 32 characters**
+
+5. **Clear browser cache and test in incognito window**
 
 ### Database Connection Fails
 
@@ -253,6 +294,11 @@ After deployment, verify these functionalities:
    - Set up connection pooling if needed
    - Review slow queries
 
+4. **Vercel Function Logs**
+   - Monitor for Better Auth errors
+   - Check for OAuth flow issues
+   - Review API endpoint errors
+
 ## 🔒 Security Recommendations
 
 1. **Environment Variables**
@@ -287,9 +333,11 @@ After deployment, verify these functionalities:
 Before going live:
 
 - [ ] All environment variables configured in Vercel
+- [ ] BETTER_AUTH_URL set to `https://tx-sentinel.vercel.app`
 - [ ] Database schema and migrations applied
-- [ ] OAuth callback URLs updated
-- [ ] `BETTER_AUTH_URL` set to production URL
+- [ ] OAuth callback URLs updated in Google Console
+- [ ] OAuth callback URLs updated in GitHub Settings
+- [ ] Test authentication in production (no 403 errors)
 - [ ] Session password protection enabled
 - [ ] Test all authentication flows
 - [ ] Test agent Q&A functionality
@@ -300,5 +348,7 @@ Before going live:
 ---
 
 **Deployment Status:** Ready for Vercel deployment ✅
+
+**Production URL:** https://tx-sentinel.vercel.app
 
 **Last Updated:** 2026-01-19
