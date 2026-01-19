@@ -111,7 +111,7 @@ Planning → Memory Check → Dependency Decision → Pronoun Resolution → Rea
 
    # Session Password Protection (Optional - for demo deployment)
    REQUIRE_SESSION_PASSWORD=false
-   SESSION_PASSWORD=test123
+   SESSION_PASSWORD=whoami
    ```
 
 4. **Set up the database**
