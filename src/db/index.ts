@@ -1,6 +1,7 @@
 import { drizzle } from "drizzle-orm/postgres-js"
 import postgres from "postgres"
 import { env } from "@/lib/env"
+import * as schema from "@/db/schema"
 
 /**
  * PostgreSQL connection using the postgres.js driver.
@@ -15,8 +16,10 @@ const client = postgres(env.DATABASE_URL, {
 /**
  * Drizzle ORM instance.
  * Use this for all database operations.
+ *
+ * IMPORTANT: Schema is passed to enable db.query relational queries.
  */
-export const db = drizzle(client)
+export const db = drizzle(client, { schema })
 
 /**
  * Export the raw client for advanced use cases.

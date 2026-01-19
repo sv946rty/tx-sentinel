@@ -45,3 +45,4 @@ next-env.d.ts
 
 # AI rules prompts (private)
 /docs/001.ai.rules/prompts/
+/docs/004.interviews/
