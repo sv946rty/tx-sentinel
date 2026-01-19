@@ -90,6 +90,7 @@ export function SessionPasswordDialog({
                 }}
                 disabled={isPending}
                 className="w-full pr-10"
+                autoComplete="current-password"
                 autoFocus
               />
               <Button
