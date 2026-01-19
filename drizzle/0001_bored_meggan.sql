@@ -1,0 +1,1 @@
+ALTER TABLE "ai_agent"."sessions" ADD COLUMN "session_password_authenticated" boolean DEFAULT false;
