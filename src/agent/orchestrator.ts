@@ -290,7 +290,51 @@ export async function runAgent(
     }
 
     // =========================================
-    // STEP 5: Iterative Reasoning Loop
+    // STEP 5: Check if we can reuse existing answer
+    // =========================================
+    // If a similar question exists and we don't need additional context,
+    // return the stored answer directly instead of querying OpenAI again
+    if (existenceCheck.similarQuestionExists &&
+        !dependencyDecision.requiresMemory &&
+        existenceCheck.existingAnswer) {
+
+      emitReasoningStep(
+        state,
+        onStream,
+        "generating_answer",
+        "Retrieving stored answer from previous question..."
+      )
+
+      // Stream the existing answer as if it's being generated
+      // This provides a consistent UX
+      const existingAnswer = existenceCheck.existingAnswer
+      state.answer = existingAnswer
+
+      // Stream the answer in chunks for consistent UX
+      if (onAnswerChunk || onStream) {
+        const chunkSize = 10 // characters per chunk
+        for (let i = 0; i < existingAnswer.length; i += chunkSize) {
+          const chunk = existingAnswer.slice(i, i + chunkSize)
+          if (onAnswerChunk) {
+            onAnswerChunk(chunk)
+          }
+          if (onStream) {
+            onStream({
+              type: "answer_chunk",
+              data: { chunk },
+            })
+          }
+          // Small delay to simulate streaming
+          await new Promise(resolve => setTimeout(resolve, 20))
+        }
+      }
+
+      state.status = "completed"
+      return state
+    }
+
+    // =========================================
+    // STEP 6: Iterative Reasoning Loop
     // =========================================
     state.status = "executing"
     emitReasoningStep(
@@ -326,7 +370,7 @@ export async function runAgent(
     )
 
     // =========================================
-    // STEP 6: Generate Final Answer
+    // STEP 7: Generate Final Answer
     // =========================================
     emitReasoningStep(
       state,
