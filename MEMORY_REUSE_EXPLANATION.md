@@ -211,3 +211,220 @@ for (let i = 0; i < existingAnswer.length; i += 10) {
 ✅ **Smart:** Still generates new answers when context is needed
 
 The agent's reasoning message now matches its actual behavior!
+
+---
+
+## Update: Pronoun Resolution Memory Reuse Fix
+
+### The Second Bug You Discovered
+
+After the first fix, you found another issue:
+
+When asking **"How big is it?"** multiple times (with "it" resolving to "Yosemite National Park"):
+- ✅ Agent correctly resolves "it" → "Yosemite National Park"
+- ✅ Agent says "Using prior context from a previous question"
+- ❌ **BUT** still generates a new answer instead of reusing the stored one
+
+**Example:**
+```
+Q1: "What is Yosemite National Park?"
+A1: (Generated and stored)
+
+Q2: "How big is it?"
+→ Resolves "it" → "Yosemite National Park"
+→ Generates: "Yosemite is approximately 1,187 square miles..." (stored)
+
+Q3: "How big is it?" (repeat)
+→ Resolves "it" → "Yosemite National Park"
+→ Should return stored answer from Q2
+→ But instead generates NEW answer: "Yosemite covers 748,436 acres..."
+```
+
+### Root Cause
+
+Memory existence check happened **BEFORE** pronoun resolution:
+
+```typescript
+// Step 2: Check memory for "How big is it?" (with pronoun)
+existenceCheck = checkMemory("How big is it?")  // ❌ Not found
+
+// Step 3: Resolve pronouns
+"it" → "Yosemite National Park"
+// Now question is effectively "How big is Yosemite National Park?"
+
+// But we never checked if THIS question was asked before!
+```
+
+The system searched for:
+- "How big is **it**?" ❌ (not found in database)
+
+When it should also search for:
+- "How big is **Yosemite National Park**?" ✅ (exists from Q2!)
+
+### The Fix
+
+Added **Step 3.5** - Re-check memory with resolved question:
+
+```typescript
+// After pronoun resolution, build resolved question
+if (pronouns_resolved) {
+  resolvedQuestion = question.replace("it", "Yosemite National Park")
+  // "How big is it?" → "How big is Yosemite National Park?"
+  
+  // Re-check memory with resolved question
+  resolvedQuestionMemory = checkMemory(resolvedQuestion)
+  
+  if (resolvedQuestionMemory.exists) {
+    // Found it! Use this answer
+    answerToReuse = resolvedQuestionMemory.answer
+  }
+}
+```
+
+### Updated Answer Reuse Logic
+
+Now checks **three** scenarios:
+
+1. **Direct repetition (no pronouns)**
+   ```
+   Q: "What is Paris?"
+   Q: "What is Paris?" (exact repeat)
+   → Use stored answer ✅
+   ```
+
+2. **Paraphrased question (no pronouns)**
+   ```
+   Q: "Who invented the telephone?"
+   Q: "Who created the telephone?" (paraphrase)
+   → Use stored answer ✅
+   ```
+
+3. **Pronoun-based repetition (NEW!)**
+   ```
+   Q: "What is Yosemite?"
+   Q: "How big is it?" (first time with pronoun)
+   Q: "How big is it?" (repeat with pronoun)
+   → Resolves to "How big is Yosemite National Park?"
+   → Use stored answer from previous "How big is it?" ✅
+   ```
+
+### Implementation Details
+
+**Key Changes in orchestrator.ts:**
+
+1. **Build Resolved Question** (after pronoun resolution)
+   ```typescript
+   let resolvedQuestion: string | undefined
+   if (pronouns_resolved) {
+     resolvedQuestion = question
+     for (entity of resolvedEntities) {
+       // Replace "it" with "Yosemite National Park"
+       resolvedQuestion = resolvedQuestion.replace(pronoun, entity)
+     }
+   }
+   ```
+
+2. **Re-check Memory** (new step 3.5)
+   ```typescript
+   if (resolvedQuestion && resolvedQuestion !== originalQuestion) {
+     resolvedQuestionMemory = await checkMemory(resolvedQuestion)
+     if (found) {
+       // Add to retrieved memories
+     }
+   }
+   ```
+
+3. **Updated Reuse Logic** (step 5)
+   ```typescript
+   let answerToReuse: string | undefined
+   
+   // Check original question
+   if (originalQuestionAnswer) {
+     answerToReuse = originalQuestionAnswer
+   }
+   
+   // Check resolved question (for pronouns)
+   if (!answerToReuse && resolvedQuestionAnswer) {
+     answerToReuse = resolvedQuestionAnswer
+   }
+   
+   if (answerToReuse) {
+     return answerToReuse  // Skip OpenAI
+   }
+   ```
+
+### Complete Flow Example
+
+```
+Q1: "What is Yosemite National Park?"
+→ No memory found
+→ Generate answer: "Yosemite is a national park in California..."
+→ Store in DB
+
+Q2: "How big is it?"
+→ Memory check: "How big is it?" → Not found
+→ Resolve: "it" → "Yosemite National Park"
+→ Re-check memory: "How big is Yosemite National Park?" → Not found
+→ Generate answer: "Yosemite is approximately 1,187 square miles..."
+→ Store in DB as "How big is it?" with context
+
+Q3: "How big is it?" (repeat)
+→ Memory check: "How big is it?" → Not found (no exact match)
+→ Resolve: "it" → "Yosemite National Park"
+→ Re-check memory: "How big is Yosemite National Park?" → FOUND! ✅
+→ Return stored answer: "Yosemite is approximately 1,187 square miles..."
+→ No OpenAI call ✅
+```
+
+### Why This Matters
+
+**Before both fixes:**
+- Every question = 1 OpenAI call
+- 10 identical questions = 10 calls = ~$0.10
+
+**After first fix only:**
+- Direct repeats cached
+- But pronoun repeats still called OpenAI
+- 10 "How big is it?" = 10 calls = ~$0.10
+
+**After both fixes:**
+- Direct repeats cached ✅
+- Pronoun repeats cached ✅
+- 10 "How big is it?" = 1 call + 9 cached = ~$0.01
+- **90% cost savings even with pronouns!**
+
+### Testing the Complete Fix
+
+```bash
+# Test 1: Direct repetition
+Q: "What is Paris?"
+Q: "What is Paris?" (should be instant)
+
+# Test 2: Pronoun-based repetition
+Q: "What is Yosemite National Park?"
+Q: "How big is it?" (first time - generates)
+Q: "How big is it?" (second time - should be instant!)
+
+# Test 3: Different pronoun question
+Q: "What is Yosemite National Park?"
+Q: "How big is it?" (generates and stores)
+Q: "Where is it located?" (generates and stores)
+Q: "Where is it located?" (should be instant!)
+```
+
+### Edge Cases Handled
+
+1. **Pronoun can't be resolved** → Falls back to generation
+2. **Resolved question not in memory** → Generates with context
+3. **Multiple pronouns** → Resolves all, then checks memory
+4. **Ambiguous resolution** → Falls back to generation
+
+---
+
+## Final Summary
+
+✅ **Fix 1:** Reuse answers for direct repetitions  
+✅ **Fix 2:** Reuse answers for pronoun-based repetitions  
+✅ **Result:** Intelligent caching that understands both literal and contextual question matching  
+
+The agent now behaves exactly as users expect: ask the same question (even with pronouns) and get the same answer instantly!
