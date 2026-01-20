@@ -21,7 +21,7 @@ This project solves four critical problems in AI agent development:
 **Solution:** Mandatory pronoun resolution that automatically resolves references using conversation history, ensuring pronouns always resolve to the most recent relevant entity.
 
 ### 3. **The Semantic Similarity Problem**
-**Problem:** "Who is Bill Clinton's wife?" doesn't match "Who is Bill Clinton's spouse?" because text search can't understand synonyms
+**Problem:** "Who is George Washington's wife?" doesn't match "Who is George Washington's spouse?" because text search can't understand synonyms  
 **Solution:** **Vector database (pgvector) with OpenAI embeddings** for semantic search. Questions are converted to 1,536-dimensional vectors where "wife" and "spouse" are mathematically close. Achieves 87.7% similarity match where text search would fail completely.
 
 ### 4. **The Black Box Agent Problem**
