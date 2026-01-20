@@ -352,10 +352,11 @@ export async function runAgent(
     // =========================================
     // STEP 5: Check if we can reuse existing answer
     // =========================================
-    // We can reuse a stored answer in three scenarios:
+    // We can reuse a stored answer in four scenarios:
     // 1. Similar question exists AND no additional memory needed (simple case)
     // 2. Pronouns were resolved AND we have a stored answer for the resolved question
     // 3. Direct repetition with pronouns (resolved question was answered before)
+    // 4. High vector similarity (>= 85%) - override LLM decision for confident matches
 
     let answerToReuse: string | undefined
 
@@ -371,6 +372,22 @@ export async function runAgent(
         resolvedQuestionMemory?.similarQuestionExists &&
         resolvedQuestionMemory.existingAnswer) {
       answerToReuse = resolvedQuestionMemory.existingAnswer
+    }
+
+    // Scenario 4: High vector similarity (>= 85%) - trust the embedding model
+    // This handles "wife" vs "spouse" where vector search is confident but LLM might hesitate
+    if (!answerToReuse &&
+        existenceCheck.vectorSimilarityScore !== undefined &&
+        existenceCheck.vectorSimilarityScore >= 0.85 &&
+        existenceCheck.existingAnswer) {
+      answerToReuse = existenceCheck.existingAnswer
+
+      emitReasoningStep(
+        state,
+        onStream,
+        "memory_existence_check",
+        `High semantic similarity (${(existenceCheck.vectorSimilarityScore * 100).toFixed(1)}%) detected - reusing cached answer`
+      )
     }
 
     if (answerToReuse) {
