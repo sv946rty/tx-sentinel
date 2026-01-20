@@ -111,7 +111,10 @@ Respond with a JSON object:
       }
     }
     if (memoryMap.size > 0) {
-      similarMemories = Array.from(memoryMap.values()).slice(0, 5)
+      // Sort by createdAt descending (newest first) after combining from multiple queries
+      similarMemories = Array.from(memoryMap.values())
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, 5)
     }
   }
 
@@ -157,7 +160,8 @@ Respond with a JSON object:
   "explanation": "string - explain why questions are/aren't similar"
 }
 
-If multiple similar questions exist, select the most recent and relevant one.`,
+**CRITICAL: If multiple similar questions exist, ALWAYS select the MOST RECENT one (latest createdAt timestamp).**
+This ensures users get the newest/most up-to-date answer.`,
       },
       {
         role: "user",
