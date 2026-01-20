@@ -169,7 +169,8 @@ export async function runAgent(
       console.warn("Memory decision warnings:", formatValidationResult(validationResult))
     }
 
-    // Emit pronoun resolution if applicable
+    // Emit pronoun resolution if applicable and build resolved question
+    let resolvedQuestion: string | undefined
     if (dependencyDecision.pronounResolution?.hasPronouns) {
       const resolution = dependencyDecision.pronounResolution
       if (resolution.resolved && resolution.resolvedEntities && resolution.resolvedEntities.length > 0) {
@@ -182,6 +183,14 @@ export async function runAgent(
           "pronoun_resolution",
           `Resolved references: ${entities}`
         )
+
+        // Build resolved question by replacing pronouns with their resolved entities
+        resolvedQuestion = input.question
+        for (const entity of resolution.resolvedEntities) {
+          // Replace pronoun with resolved entity (case-insensitive)
+          const pronounRegex = new RegExp(`\\b${entity.pronoun}\\b`, 'gi')
+          resolvedQuestion = resolvedQuestion.replace(pronounRegex, entity.resolvedTo)
+        }
       } else if (resolution.resolutionAttempted && !resolution.resolved) {
         emitReasoningStep(
           state,
@@ -245,6 +254,44 @@ export async function runAgent(
     }
 
     // =========================================
+    // STEP 3.5: Re-check memory with resolved question
+    // =========================================
+    // If pronouns were resolved, check if we have a stored answer for the RESOLVED question
+    // Example: "How big is it?" resolves to "How big is Yosemite National Park?"
+    // We should check if we've answered "How big is Yosemite National Park?" before
+    let resolvedQuestionMemory: MemoryExistenceCheck | undefined
+    if (resolvedQuestion && resolvedQuestion !== input.question) {
+      emitReasoningStep(
+        state,
+        onStream,
+        "memory_existence_check",
+        `Checking if resolved question was asked before: "${resolvedQuestion.substring(0, 80)}${resolvedQuestion.length > 80 ? "..." : ""}"`
+      )
+
+      resolvedQuestionMemory = await checkMemoryExistence(userId, resolvedQuestion)
+
+      if (resolvedQuestionMemory.similarQuestionExists && resolvedQuestionMemory.existingAnswer) {
+        emitReasoningStep(
+          state,
+          onStream,
+          "memory_existence_check",
+          `Found stored answer for resolved question!`
+        )
+
+        // Add the resolved question's answer to retrieved memories
+        if (resolvedQuestionMemory.existingRunId) {
+          state.retrievedMemories.push({
+            runId: resolvedQuestionMemory.existingRunId,
+            question: resolvedQuestionMemory.existingQuestion!,
+            answer: resolvedQuestionMemory.existingAnswer!,
+            createdAt: new Date().toISOString(),
+            relevanceScore: 1.0,
+          })
+        }
+      }
+    }
+
+    // =========================================
     // STEP 4: Memory Retrieval (if additional context needed)
     // =========================================
     if (memoryDecision.shouldRetrieveMemory && memoryDecision.searchQuery) {
@@ -292,12 +339,28 @@ export async function runAgent(
     // =========================================
     // STEP 5: Check if we can reuse existing answer
     // =========================================
-    // If a similar question exists and we don't need additional context,
-    // return the stored answer directly instead of querying OpenAI again
+    // We can reuse a stored answer in three scenarios:
+    // 1. Similar question exists AND no additional memory needed (simple case)
+    // 2. Pronouns were resolved AND we have a stored answer for the resolved question
+    // 3. Direct repetition with pronouns (resolved question was answered before)
+
+    let answerToReuse: string | undefined
+
+    // Scenario 1: Direct match, no memory needed
     if (existenceCheck.similarQuestionExists &&
         !dependencyDecision.requiresMemory &&
         existenceCheck.existingAnswer) {
+      answerToReuse = existenceCheck.existingAnswer
+    }
 
+    // Scenario 2 & 3: Pronouns resolved and we have the resolved question's answer
+    if (!answerToReuse &&
+        resolvedQuestionMemory?.similarQuestionExists &&
+        resolvedQuestionMemory.existingAnswer) {
+      answerToReuse = resolvedQuestionMemory.existingAnswer
+    }
+
+    if (answerToReuse) {
       emitReasoningStep(
         state,
         onStream,
@@ -307,14 +370,13 @@ export async function runAgent(
 
       // Stream the existing answer as if it's being generated
       // This provides a consistent UX
-      const existingAnswer = existenceCheck.existingAnswer
-      state.answer = existingAnswer
+      state.answer = answerToReuse
 
       // Stream the answer in chunks for consistent UX
       if (onAnswerChunk || onStream) {
         const chunkSize = 10 // characters per chunk
-        for (let i = 0; i < existingAnswer.length; i += chunkSize) {
-          const chunk = existingAnswer.slice(i, i + chunkSize)
+        for (let i = 0; i < answerToReuse.length; i += chunkSize) {
+          const chunk = answerToReuse.slice(i, i + chunkSize)
           if (onAnswerChunk) {
             onAnswerChunk(chunk)
           }
