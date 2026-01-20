@@ -1,6 +1,7 @@
 import { openai, modelConfig } from "@/lib/openai"
 import { memoryExistenceCheckSchema, type MemoryExistenceCheck } from "@/lib/schemas"
 import { searchMemory } from "@/db/queries"
+import { searchByVector } from "@/db/queries/vector-search"
 
 /**
  * Memory Existence Check Step
@@ -51,15 +52,35 @@ Respond with a JSON object:
 
   const { searchQuery } = JSON.parse(searchQueryContent) as { searchQuery: string }
 
-  // Search for similar questions in memory using multiple strategies
-  // Strategy 1: Search with generated query (semantic keywords)
-  let similarMemories = await searchMemory({
-    userId,
-    query: searchQuery,
-    limit: 3,
+  // Search for similar questions in memory using HYBRID STRATEGY
+  // Try vector search first (semantic), fall back to text search if no embeddings exist
+
+  // Strategy 1: Vector Similarity Search (PRIMARY - best for semantic matching)
+  // This will find "wife" when searching for "spouse", paraphrases, etc.
+  let vectorResults = await searchByVector(userId, question, {
+    limit: 5,
+    similarityThreshold: 0.75, // Lower threshold for finding candidates
   })
 
-  // Strategy 2: If no results, search with original question text
+  // Convert vector results to the format expected by the LLM
+  let similarMemories = vectorResults.map(r => ({
+    runId: r.id,
+    question: r.question,
+    answer: r.answer,
+    createdAt: r.createdAt.toISOString(),
+    relevanceScore: r.similarity,
+  }))
+
+  // Strategy 2: Text search fallback (if no vector results - old records without embeddings)
+  if (similarMemories.length === 0) {
+    similarMemories = await searchMemory({
+      userId,
+      query: searchQuery,
+      limit: 3,
+    })
+  }
+
+  // Strategy 3: If still no results, search with original question text
   // This catches exact or near-exact matches that might be missed by keyword search
   if (similarMemories.length === 0) {
     // Extract key words from the question (removing common words)
@@ -127,6 +148,9 @@ Respond with a JSON object:
     })
   }
 
+  // Determine which search method was used
+  const searchMethod = vectorResults.length > 0 ? 'vector_similarity' : 'text_search'
+
   // Now use LLM to determine if any of these are truly similar
   const similarityResponse = await openai.chat.completions.create({
     model: modelConfig.memoryDecision.model,
@@ -140,15 +164,18 @@ Two questions are "substantially similar" if they:
 - Ask about the same topic or entity (even if worded differently)
 - Have the same intent or goal
 - Would have the same or very similar answers
-- Use synonyms or paraphrasing (e.g., "right now" vs "currently", "where" vs "what location")
+- Use synonyms or paraphrasing (e.g., "right now" vs "currently", "where" vs "what location", "wife" vs "spouse")
 
 **IMPORTANT EXAMPLES:**
 - "Where does he live right now?" ≈ "Where does he live currently?" → SIMILAR (same intent, synonyms)
 - "Where was he born?" ≈ "What is his birthplace?" → SIMILAR (same question, different wording)
 - "Who is Tim Cook?" ≈ "Tell me about Tim Cook" → SIMILAR (same subject, similar intent)
+- "Who is his wife?" ≈ "Who is his spouse?" → SIMILAR (synonyms - wife/spouse)
 - "What is Python?" ≈ "How does Python work?" → DIFFERENT (different intents)
 
 Be generous with similarity - if questions ask the same thing with different words, mark them as similar.
+
+${searchMethod === 'vector_similarity' ? '**NOTE:** These results were found using semantic vector search, which already indicates high similarity. Trust the relevanceScore provided.' : ''}
 
 Respond with a JSON object:
 {
@@ -157,7 +184,9 @@ Respond with a JSON object:
   "existingQuestion": "string (optional) - the similar question text",
   "existingAnswer": "string (optional) - the previous answer",
   "searchQuery": "string - the search query used",
-  "explanation": "string - explain why questions are/aren't similar"
+  "explanation": "string - explain why questions are/aren't similar",
+  "searchMethod": "${searchMethod}",
+  "vectorSimilarityScore": number (optional) - if vector search, the highest similarity score
 }
 
 **CRITICAL: If multiple similar questions exist, ALWAYS select the MOST RECENT one (latest createdAt timestamp).**
@@ -172,8 +201,10 @@ This ensures users get the newest/most up-to-date answer.`,
             question: m.question,
             answer: m.answer,
             createdAt: m.createdAt,
+            relevanceScore: m.relevanceScore,
           })),
           searchQuery,
+          searchMethod,
         }),
       },
     ],

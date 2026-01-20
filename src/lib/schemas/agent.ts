@@ -48,6 +48,8 @@ export const memoryExistenceCheckSchema = z.object({
   existingAnswer: z.string().optional().describe("The previous answer, if found"),
   searchQuery: z.string().describe("Query used to search for similar questions"),
   explanation: z.string().describe("Explanation of the similarity check result"),
+  searchMethod: z.enum(["vector_similarity", "text_search"]).optional().describe("Search method used"),
+  vectorSimilarityScore: z.number().min(0).max(1).optional().describe("Vector similarity score if applicable"),
 })
 
 export type MemoryExistenceCheck = z.infer<typeof memoryExistenceCheckSchema>
@@ -113,6 +115,11 @@ export const reasoningStepSchema = z.object({
     .string()
     .describe("User-facing description of what the agent is doing"),
   timestamp: z.string().datetime(),
+  searchAnalytics: z.object({
+    searchMethod: z.enum(["vector_similarity", "text_search"]),
+    similarityScore: z.number().min(0).max(1).optional(),
+    resultsCount: z.number().int().min(0).optional(),
+  }).optional().describe("Search analytics for memory operations"),
 })
 
 export type ReasoningStep = z.infer<typeof reasoningStepSchema>

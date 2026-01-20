@@ -2,6 +2,7 @@
 
 import { CheckCircle2, Circle, Loader2, Brain } from "lucide-react"
 import type { ReasoningStep } from "@/lib/schemas"
+import { SearchAnalytics } from "@/components/memory/search-analytics"
 
 interface ReasoningTimelineProps {
   steps: ReasoningStep[]
@@ -77,6 +78,13 @@ export function ReasoningTimeline({ steps, isComplete }: ReasoningTimelineProps)
                 <p className={`text-sm leading-relaxed ${isDone ? 'text-foreground' : 'text-muted-foreground'}`}>
                   {step.description}
                 </p>
+                {step.searchAnalytics && (
+                  <SearchAnalytics
+                    searchMethod={step.searchAnalytics.searchMethod}
+                    similarityScore={step.searchAnalytics.similarityScore}
+                    resultsCount={step.searchAnalytics.resultsCount}
+                  />
+                )}
               </div>
             </div>
           )

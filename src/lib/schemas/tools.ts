@@ -29,6 +29,7 @@ export type MemoryRetrievalInput = z.infer<typeof memoryRetrievalInputSchema>
 export const memoryRetrievalOutputSchema = z.object({
   memories: z.array(retrievedMemorySchema),
   searchedAt: z.string().datetime(),
+  searchMethod: z.enum(["vector_similarity", "text_search"]).optional().describe("Search method used"),
 })
 
 export type MemoryRetrievalOutput = z.infer<typeof memoryRetrievalOutputSchema>

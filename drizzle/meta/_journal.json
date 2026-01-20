@@ -15,6 +15,13 @@
       "when": 1768853408993,
       "tag": "0001_bored_meggan",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1768935014885,
+      "tag": "0002_known_lily_hollister",
+      "breakpoints": true
     }
   ]
 }

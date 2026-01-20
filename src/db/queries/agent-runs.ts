@@ -1,12 +1,25 @@
 import { db } from "@/db"
 import { agentRuns, type NewAgentRun, type AgentRun } from "@/db/schema"
 import { eq, desc, ilike, and, sql } from "drizzle-orm"
+import { generateEmbedding } from "@/lib/embeddings"
 
 /**
  * Insert a new agent run into the database.
+ * Automatically generates vector embedding for semantic search.
  */
 export async function insertAgentRun(data: NewAgentRun): Promise<AgentRun> {
-  const [result] = await db.insert(agentRuns).values(data).returning()
+  // Generate embedding for the question
+  const embeddingResult = await generateEmbedding(data.question)
+
+  const [result] = await db
+    .insert(agentRuns)
+    .values({
+      ...data,
+      questionEmbedding: embeddingResult.embedding,
+      embeddingModel: embeddingResult.model,
+    })
+    .returning()
+
   return result
 }
 

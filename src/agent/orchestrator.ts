@@ -125,20 +125,33 @@ export async function runAgent(
 
     const existenceCheck = await checkMemoryExistence(userId, input.question)
 
-    // Emit existence check result
+    // Emit existence check result with search analytics
     if (existenceCheck.similarQuestionExists) {
       emitReasoningStep(
         state,
         onStream,
         "memory_existence_check",
-        `Similar question found: "${existenceCheck.existingQuestion?.substring(0, 80)}${(existenceCheck.existingQuestion?.length ?? 0) > 80 ? "..." : ""}"`
+        `Similar question found: "${existenceCheck.existingQuestion?.substring(0, 80)}${(existenceCheck.existingQuestion?.length ?? 0) > 80 ? "..." : ""}}"`,
+        existenceCheck.searchMethod && existenceCheck.vectorSimilarityScore !== undefined
+          ? {
+              searchMethod: existenceCheck.searchMethod,
+              similarityScore: existenceCheck.vectorSimilarityScore,
+              resultsCount: 1,
+            }
+          : undefined
       )
     } else {
       emitReasoningStep(
         state,
         onStream,
         "memory_existence_check",
-        "No similar question found. This appears to be a new question."
+        "No similar question found. This appears to be a new question.",
+        existenceCheck.searchMethod
+          ? {
+              searchMethod: existenceCheck.searchMethod,
+              resultsCount: 0,
+            }
+          : undefined
       )
     }
 
@@ -490,13 +503,19 @@ function emitReasoningStep(
   state: AgentRunState,
   onStream: StreamCallback | undefined,
   type: ReasoningStep["type"],
-  description: string
+  description: string,
+  searchAnalytics?: {
+    searchMethod: "vector_similarity" | "text_search"
+    similarityScore?: number
+    resultsCount?: number
+  }
 ): void {
   const step: ReasoningStep = {
     step: state.reasoningSteps.length + 1,
     type,
     description,
     timestamp: new Date().toISOString(),
+    searchAnalytics,
   }
 
   state.reasoningSteps.push(step)

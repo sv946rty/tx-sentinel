@@ -4,7 +4,9 @@ import {
   text,
   timestamp,
   jsonb,
+  varchar,
 } from "drizzle-orm/pg-core"
+import { vector } from "drizzle-orm/pg-core"
 import { env } from "@/lib/env"
 
 /**
@@ -121,6 +123,12 @@ export const agentRuns = appSchema.table("agent_runs", {
 
   // Final answer
   answer: text("answer").notNull(),
+
+  // Vector embedding for semantic search (1536 dimensions for text-embedding-3-small)
+  questionEmbedding: vector("question_embedding", { dimensions: 1536 }),
+
+  // Track embedding model version for future migrations
+  embeddingModel: varchar("embedding_model", { length: 50 }),
 
   // Timestamps
   createdAt: timestamp("created_at", { withTimezone: true })
