@@ -1,7 +1,8 @@
 import { ThemeToggle } from "@/components/theme"
 import { UserMenu } from "@/components/auth"
-import { Menu, Sparkles } from "lucide-react"
+import { Menu, Sparkles, Github } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import Link from "next/link"
 
 interface AppHeaderProps {
   onToggleSidebar?: () => void
@@ -13,6 +14,7 @@ interface AppHeaderProps {
  * Contains:
  * - Sidebar toggle (hamburger menu)
  * - Logo with AI branding
+ * - GitHub repository link
  * - Theme toggle
  * - User menu
  */
@@ -42,6 +44,15 @@ export function AppHeader({ onToggleSidebar }: AppHeaderProps) {
       </div>
 
       <div className="flex items-center gap-2">
+        <Link
+          href="https://github.com/sv946rty/tx-sentinel"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex h-9 w-9 items-center justify-center rounded-md text-white/90 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
+          aria-label="View source on GitHub"
+        >
+          <Github className="h-5 w-5" />
+        </Link>
         <ThemeToggle />
         <UserMenu />
       </div>
