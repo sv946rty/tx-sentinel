@@ -374,11 +374,12 @@ export async function runAgent(
       answerToReuse = resolvedQuestionMemory.existingAnswer
     }
 
-    // Scenario 4: High vector similarity (>= 85%) - trust the embedding model
+    // Scenario 4: High vector similarity (>= 84%) - trust the embedding model
     // This handles "wife" vs "spouse" where vector search is confident but LLM might hesitate
+    // Lowered from 85% to 84% to catch edge cases like "spouse" (84.2%)
     if (!answerToReuse &&
         existenceCheck.vectorSimilarityScore !== undefined &&
-        existenceCheck.vectorSimilarityScore >= 0.85 &&
+        existenceCheck.vectorSimilarityScore >= 0.84 &&
         existenceCheck.existingAnswer) {
       answerToReuse = existenceCheck.existingAnswer
 
@@ -387,6 +388,22 @@ export async function runAgent(
         onStream,
         "memory_existence_check",
         `High semantic similarity (${(existenceCheck.vectorSimilarityScore * 100).toFixed(1)}%) detected - reusing cached answer`
+      )
+    }
+
+    // Scenario 4b: High vector similarity for RESOLVED question
+    // Check if the resolved question also has high similarity
+    if (!answerToReuse &&
+        resolvedQuestionMemory?.vectorSimilarityScore !== undefined &&
+        resolvedQuestionMemory.vectorSimilarityScore >= 0.84 &&
+        resolvedQuestionMemory.existingAnswer) {
+      answerToReuse = resolvedQuestionMemory.existingAnswer
+
+      emitReasoningStep(
+        state,
+        onStream,
+        "memory_existence_check",
+        `High semantic similarity for resolved question (${(resolvedQuestionMemory.vectorSimilarityScore * 100).toFixed(1)}%) detected - reusing cached answer`
       )
     }
 
