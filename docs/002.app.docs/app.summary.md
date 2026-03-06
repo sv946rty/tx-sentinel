@@ -1,6 +1,6 @@
-# Summary — What This Sentinel AI Demo Is About
+# Summary — What This Sentinel Mnemonic Is About
 
-**Sentinel AI Demo — Reasoning-First, Memory-Aware Agents**
+**Sentinel Mnemonic — Reasoning-First, Memory-Aware Agents**
 
 **This project shows how to build AI agents that think, remember, and decide.**
 

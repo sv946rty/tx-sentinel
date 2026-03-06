@@ -1,4 +1,4 @@
-# Sentinel AI Demo - Project Overview
+# Sentinel Mnemonic - Project Overview
 
 ## What This Project Is
 

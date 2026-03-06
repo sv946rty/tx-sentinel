@@ -1,4 +1,4 @@
-# Sentinel AI Demo - System Overview
+# Sentinel Mnemonic - System Overview
 
 **Last Updated:** 2026-01-19
 **Version:** 1.1
@@ -148,7 +148,7 @@ The UI uses a professional AI-themed design with:
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  AI Header (gradient)                                       │
-│  [Logo] Sentinel AI Demo                    [Theme] [Avatar]   │
+│  [Logo] Sentinel Mnemonic                    [Theme] [Avatar]   │
 ├─────────────┬───────────────────────────────────────────────┤
 │  Sidebar    │  Main Content (bg-ai-mesh)                    │
 │  (ai-sidebar│                                               │

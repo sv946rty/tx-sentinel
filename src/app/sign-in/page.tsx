@@ -45,7 +45,7 @@ export default async function SignInPage() {
 
             <div className="relative z-10 flex justify-center">
               <h1 className="rounded-lg bg-primary/40 px-4 py-2 font-serif text-2xl font-bold italic text-white shadow-lg backdrop-blur-md xl:px-6 xl:py-3 xl:text-4xl whitespace-nowrap">
-                Sentinel AI Demo
+                Sentinel Mnemonic
               </h1>
             </div>
 

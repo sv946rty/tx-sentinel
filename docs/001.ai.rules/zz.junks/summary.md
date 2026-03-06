@@ -1,4 +1,4 @@
-Summary — What This Sentinel AI Demo Is About
+Summary — What This Sentinel Mnemonic Is About
 
 This project is a production-style single-agent AI demo that showcases how to build memory-aware, context-aware AI agents in a modern Next.js application.
 

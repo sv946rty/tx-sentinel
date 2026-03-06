@@ -216,7 +216,7 @@ export function AgentPanel({ selectedQuestion, onComplete }: AgentPanelProps) {
               </div>
 
               <h2 className="gradient-text text-3xl font-bold whitespace-nowrap">
-                Sentinel AI Demo
+                Sentinel Mnemonic
               </h2>
               <p className="mx-auto mt-3 max-w-md text-sm text-muted-foreground">
                 Experience advanced memory and context-aware AI that remembers your conversations.

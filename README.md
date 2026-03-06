@@ -1,4 +1,4 @@
-# Sentinel AI Demo
+# Sentinel Mnemonic
 
 > **A production-ready demonstration of reasoning-first, memory-aware AI agents**
 
