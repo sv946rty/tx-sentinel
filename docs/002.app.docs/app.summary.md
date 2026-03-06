@@ -1,6 +1,6 @@
-# Summary — What This AI Agent Demo Is About
+# Summary — What This Sentinel AI Demo Is About
 
-**AI Agent Demo — Reasoning-First, Memory-Aware Agents**
+**Sentinel AI Demo — Reasoning-First, Memory-Aware Agents**
 
 **This project shows how to build AI agents that think, remember, and decide.**
 

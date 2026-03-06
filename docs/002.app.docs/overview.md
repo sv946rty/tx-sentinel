@@ -1,4 +1,4 @@
-# AI Agent Demo - Project Overview
+# Sentinel AI Demo - Project Overview
 
 ## What This Project Is
 

@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "sv946rty - AI Agent Demo",
+  title: "sv946rty - Sentinel AI Demo",
   description: "AI Agent with explicit planning, memory, and reasoning",
   icons: {
     icon: [

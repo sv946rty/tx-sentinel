@@ -1,4 +1,4 @@
-# AI Agent Demo - System Overview
+# Sentinel AI Demo - System Overview
 
 **Last Updated:** 2026-01-19
 **Version:** 1.1
@@ -148,7 +148,7 @@ The UI uses a professional AI-themed design with:
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  AI Header (gradient)                                       │
-│  [Logo] AI Agent Demo                    [Theme] [Avatar]   │
+│  [Logo] Sentinel AI Demo                    [Theme] [Avatar]   │
 ├─────────────┬───────────────────────────────────────────────┤
 │  Sidebar    │  Main Content (bg-ai-mesh)                    │
 │  (ai-sidebar│                                               │

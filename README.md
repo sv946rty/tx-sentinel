@@ -1,4 +1,4 @@
-# AI Agent Demo
+# Sentinel AI Demo
 
 > **A production-ready demonstration of reasoning-first, memory-aware AI agents**
 

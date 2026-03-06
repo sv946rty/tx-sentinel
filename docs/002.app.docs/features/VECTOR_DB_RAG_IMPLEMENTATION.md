@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document provides a step-by-step implementation plan for adding vector database capabilities and RAG (Retrieval-Augmented Generation) to the AI Agent demo. This enhancement will demonstrate hands-on experience with vector databases, semantic search, and LLM-integrated systems.
+This document provides a step-by-step implementation plan for adding vector database capabilities and RAG (Retrieval-Augmented Generation) to the Sentinel AI Demo. This enhancement will demonstrate hands-on experience with vector databases, semantic search, and LLM-integrated systems.
 
 **Timeline:** 2 days
 **Difficulty:** Intermediate (comfortable with embeddings required)
