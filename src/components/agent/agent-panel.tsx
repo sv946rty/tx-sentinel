@@ -215,7 +215,7 @@ export function AgentPanel({ selectedQuestion, onComplete }: AgentPanelProps) {
                 <Sparkles className="h-10 w-10 text-white" />
               </div>
 
-              <h2 className="gradient-text text-3xl font-bold">
+              <h2 className="gradient-text text-3xl font-bold whitespace-nowrap">
                 Sentinel AI Demo
               </h2>
               <p className="mx-auto mt-3 max-w-md text-sm text-muted-foreground">
